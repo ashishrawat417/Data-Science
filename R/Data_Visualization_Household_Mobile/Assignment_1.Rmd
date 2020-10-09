@@ -1,0 +1,499 @@
+---
+title: "Data Exploration and Visualization"
+author: "Ashish RAWAT"
+date: "27/09/2020"
+output: html_document
+---
+
+```{r message=FALSE}
+# installing/loading the latest installr package:
+library(tidyr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r setup, include=FALSE}
+options(expressions= 100000)
+knitr::opts_chunk$set(message = FALSE, echo = TRUE)
+```
+
+### Task 1 of 4: Data Wrangling
+#### Part-1
+
+```{r}
+## LOAD Location_temp.CSV
+temp_data = read.csv("data1.csv")
+head(temp_data)
+```
+
+```{r}
+temp_data <- temp_data %>% separate(col=Description, into=c("Location", "ID", "Date"), sep=":")
+head(temp_data)
+```
+
+```{r}
+temp_data <- temp_data %>% unite(col=Description, c("Location", "ID", "Date"), sep=":")
+head(temp_data)
+```
+
+#### Part-2
+```{r}
+iris_data = read.csv("iris.csv")
+head(iris_data)
+```
+
+```{r}
+iris_data = iris_data %>% mutate(n = row_number()) %>% gather(key=measure, value=value, 1:4)
+head(iris_data %>% select(-n))
+```
+
+
+```{r}
+iris_data = iris_data %>% 
+                  group_by(n) %>% 
+                  spread(key=measure, value=value) %>%
+                  ungroup()
+head(iris_data)
+```
+
+```{r}
+iris_data = iris_data[, c("Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width", "Species")]
+head(iris_data)
+```
+
+### Task 2 of 4: Data Wrangling
+
+```{r}
+house_data = read.csv("house_data.csv")
+```
+
+```{r}
+dim(house_data)
+```
+
+```{r}
+head(house_data)
+```
+
+
+```{r}
+tail(house_data)
+```
+
+```{r}
+view(house_data)
+```
+
+```{r}
+summary(house_data)
+```
+
+```{r}
+str(house_data)
+```
+
+```{r}
+house_data = house_data %>% drop_na() %>% 
+              filter(bedrooms > 0 & bathrooms > 0 & bathrooms == round(bathrooms) & floors == round(floors))
+
+head(house_data)
+```
+
+```{r}
+house_data <- house_data %>% mutate(price_sqft_avg =  (sqft_living + sqft_lot + sqft_living15 + sqft_lot15) / 4) %>% select(-price, price)
+head(house_data)
+```
+```{r}
+dim(house_data)
+```
+
+## Task 3 of 4: Univariate Graphs
+### The dataset for task 3: Mobile data
+
+
+```{r}
+#IMPORT THE DATASET AND FILL VALUE OF NA on missing values
+mobile_data = read.csv("mobilePhoneData.csv", na.strings=c("", " ", NA))
+```
+
+```{r}
+dim(mobile_data)
+```
+
+
+```{r}
+### RESHAPING THE DATA and converting data
+mobile_data <- mobile_data %>% gather(key="device", "value", -ID) %>% spread(key="ID", "value", convert = TRUE) %>% rename(ID=device)
+head(mobile_data)
+```
+
+
+```{r}
+#DIMENSION OF RESHAPED DATASET
+dim(mobile_data)
+```
+
+```{r}
+#CHECK THE OVERVIEW OF DATATYPE AND VALUES INSIDE THE COLUMNS IN DATASET
+glimpse(mobile_data)
+```
+
+```{r}
+#FIND DISTINCT VALUES
+t(mobile_data %>% summarise_each(funs(n_distinct)))
+```
+
+
+```{r}
+#FINDING NA VALUES BY COLUMNS
+summary(mobile_data)
+```
+```{r}
+## DATA WE LEFT with DROPPING NA VALUES
+length(mobile_data %>% drop_na())
+```
+
+
+#### DATA CLEANING:
+> 1.a) There is lots of anomalies found in many attributes present in dataset.<br>
+      i. Dataset shape is bad for analysis.
+      ii. All columns have NA values<br>
+      iii. Variables "m_dep" has 151 and "ram" has 225 NA values which is more than 50% dataset rows<br><br>
+    b) Since count of NA values are high so instead of dropping of useful data we will do following Operation we gonna do in our dataset to remove or minimize anomalies.<br>
+      i. Fix the dataset shape<br>
+      ii. Drop the columns "m_dep", "ram"<br>
+      iii. Data Transformation (Convert chr to Int)<br>
+      iv. Impute missing values mean, median and mode
+
+> 2. The summary(mobile_data) above confirms that the numerical variables have different units and scales, for example, 'battery_power, 'int_memory' and n_cores have different scales. These differences can unduly influence the model and, therefore, we need to scale or transform them.
+
+
+```{r}
+## DATA TRANSFORMATION
+mobile_data[mobile_data == "YES"] = 1
+mobile_data[mobile_data == "NO"] = 0
+```
+
+
+```{r}
+### columns to edit and visualize except ID, m_dep and ram
+cols = names(mobile_data)[c(-1, -9, -15)]
+cols
+```
+
+
+```{r}
+### Data transformation
+for (col in cols) {
+  mobile_data[col] = as.integer(unlist(mobile_data[col]))
+}
+str(mobile_data)
+```
+
+```{r}
+### Imputing missing values with median value
+for (col in cols) {
+  d = unlist(mobile_data[col])
+  d[is.na(d)] = median(d, na.rm=TRUE)
+  mobile_data[col] = d
+}
+```
+
+```{r}
+#DROP RAM COLUMN
+mobile_data = mobile_data %>% select(-ram, -m_dep)
+head(mobile_data)
+```
+
+
+```{r}
+### NORMALIZE EACH VARIABLE USING Min-Max technique
+normalized_mobile_data = mobile_data
+for (col in cols) {
+  if (! (col %in% c("three_g", "touch_screen", "wifi", "blue", "dual_sim", "four_g"))) {
+    Mobile_Feature <- unlist(mobile_data[col])
+    normalized_mobile_data[col] <- (Mobile_Feature - min(Mobile_Feature))/ (max(Mobile_Feature) - min(Mobile_Feature))
+  }
+}
+head(normalized_mobile_data)
+```
+
+### Tabular exploration:
+```{r}
+### CREATE HISTOGRAM OF EACH VARIABLE
+par(mfrow=c(3,3))
+for (col in cols) {
+  feat = unlist(normalized_mobile_data[col])
+  hist(feat, xlab=col, main = "Histogram of Mobile Data")
+}
+```
+
+#### DATA CLEANING:
+> There is outliers in some variables in dataset. Data is more skewed in some variable such as "clock_speed", mobile_wt", "n_cores", "fc" does not follow normal distribution.<br><br>
+
+
+#### Descriptive statistics
+```{r}
+### MEAN
+sapply(normalized_mobile_data[, cols], mean, na.rm=TRUE)
+```
+```{r}
+### MEDIAN
+sapply(normalized_mobile_data[, cols], median, na.rm=TRUE)
+```
+
+```{r}
+## MODE
+getmode <- function(col) {
+   uni_col <- unique(col)
+   uni_col[which.max(tabulate(match(col, uni_col)))]
+}
+
+sapply(normalized_mobile_data[, cols], getmode)
+```
+
+
+```{r}
+## RANGE
+sapply(normalized_mobile_data[, cols], quantile)
+```
+
+
+```{r}
+## QUANTILE
+sapply(normalized_mobile_data[, cols], quantile)
+```
+
+```{r}
+boxplot(normalized_mobile_data[, cols], border = "brown", las = 2, col = seq(1, length(cols)), outline = TRUE)
+```
+
+> The descriptive statistics and boxplot of all features explains data is left skewed in some variables for e.g "sw" (Screen width), fc" (Front camera), "clock_speed". Other
+variables distribution are also slightly skewed but more close to the normal distribution.
+
+#### Categorise Battery attribute on “Low”, “Medium” and “High” and draw your findings example, use a bar chart to illustrate the new categories.
+
+```{r}
+battery = table(if_else(mobile_data$battery_power > 1618, "high", if_else(mobile_data$battery_power > 868, "Medium", "Low")))
+barplot(battery, col=c(19, 20, 26))
+```
+
+```{r}
+n_cores = table(mobile_data$n_cores)
+pct <- round(n_cores / sum(n_cores) * 100)
+lbls <- names(n_cores)
+
+# add percents to labels
+lbls <- paste(lbls, "cores", "(", pct, ")") 
+lbls <- paste(lbls,"%", sep="") # ad % to labels
+
+pie(n_cores,labels = lbls, col=rainbow(length(lbls)), main="Mobile Cores")
+```
+
+### Task 4 of 4: Bivariate Graphs
+### The dataset for task 4: Household data
+
+```{r}
+#IMPORT THE DATASET AND FILL VALUE OF NA on missing values
+Householddata = read.csv("Householddata.csv", na.strings=c("", " ", NA))
+```
+
+
+```{r}
+#DIMENSION OF DATASET
+dim(Householddata)
+```
+
+
+```{r}
+### RESHAPING THE DATA
+head(Householddata)
+```
+
+```{r}
+### RESHAPING THE DATA
+tail(Householddata)
+```
+
+```{r}
+#CHECK THE OVERVIEW OF DATATYPE AND VALUES INSIDE THE COLUMNS IN DATASET
+str(Householddata)
+```
+
+```{r}
+### FIND DISTINCT VALUES IN EACH COLUMN
+t(Householddata %>% summarise_each(funs(n_distinct)))
+```
+
+
+```{r}
+#FINDING NA VALUES BY COLUMNS
+t(Householddata %>% select(everything()) %>% summarise_all(funs(sum(is.na(.)))))
+```
+
+```{r}
+summary(Householddata)
+```
+```{r}
+## DATA WE HAVE AFTER DROPPING NA VALUES
+length(Householddata %>% drop_na())
+```
+
+#### DATA CLEANING:
+> Anomalies: There is lots of anomalies found in many attributes present in dataset.<br><br>
+    i. 19 Columns has missing values and 4 columns have missing value more than 98% of rowset<br>
+    ii. Taxes column have negative value<br>
+    iii. Income column should be numeric not character<br>
+    iv. Columns from 16 to 210 are just unique value of other columns which should not be added that way in dataset.<br><br>
+    Since count of NA values are high so instead of dropping of useful data we will do following Operation we gonna do in our dataset to remove or minimize anomalies.<br>
+    i.   Drop the columns X, Education.Level.1, X.1, X.2, GHH..Gender.of.the.Household.Head, X.3<br>
+    ii.  Data Variable: correcting variable types of Column "Income" to integer 
+    iii. Make values absolute of "Taxes" column<br>
+    iv.  Impute missing values values in columns Income,Taxes, Groceries, Meals, Utilities, Cloth, Alcohol, Fuel, Phone column with mean values of those colummns<br>
+    v.   Impute missing values values in columns HH.Age, children, adults replace with median value.
+    vi.  Impute missing values value in column "Ownhouse" with mode (maxium occured) value
+
+
+> Normalization: The summary(Householddata) above confirms that the numerical variables have different units and scales, for example, 'HH.Age' in years and 'Income' in dollars. These differences can unduly influence the model and, therefore, we need to scale or transform them.
+
+
+```{r}
+### cOnvert price to numeric
+Householddata$Income = as.numeric(gsub("[\\$,]", "", Householddata$Income))
+```
+
+```{r}
+### Make abosulute values of price columns, Replace NA with mean values in selected columns
+for (col in c("Income", "Taxes", "Groceries", "Meals", "Utilities", "Cloth", "Alcohol", "Fuel", "Phone")) {
+  d = unlist(Householddata[col])
+  d = abs(d)
+  d[is.na(d)] = mean(d, na.rm=TRUE)
+  Householddata[col] = d
+}
+```
+
+```{r}
+### Replace NA with median values in selected columns
+for (col in c("HH.Age", "Children", "Adults")) {
+  d = unlist(Householddata[col])
+  d[is.na(d)] = median(d, na.rm=TRUE)
+  Householddata[col] = d
+}
+```
+
+```{r}
+### Replace NA with mode values in selected columns
+getmode <- function(col) {
+   uni_col <- unique(col[ !is.na(col) ])
+   uni_col[which.max(tabulate(match(col, uni_col)))]
+}
+
+for (col in c("Ownhouse")) {
+  d = unlist(Householddata[col])
+  d[is.na(d)] = getmode(d)
+  Householddata[col] = d
+}
+```
+
+
+```{r}
+### DATA TRANSFORMATION
+for (col in c("Ownhouse", "HH.Gender", "Education.Level")) {
+  d = unlist(Householddata[col])
+  Householddata[col] = factor(d)
+}
+```
+
+```{r}
+#REMOVE anomalous columns i.e X Education.Level.1, X.1, X.2, GHH..Gender.of.the.Household.Head, X.3
+Householddata = Householddata[, 1:15]
+```
+
+```{r}
+# ADD NEW TOTAL EXPENDITURE COLUMNG FOR FURTHER ANALSIS
+Householddata = mutate(Householddata, Total_Expenditure=Groceries + Meals + Utilities + Cloth + Alcohol + Fuel + Phone)
+```
+
+```{r}
+### NORMALIZE EACH FEATURE USING Min-Max technique
+norm_Householddata = Householddata
+for (col in names(norm_Householddata)) {
+  if (! (col %in% c("children", "Adults", "Ownhouse", "Education.Level", "HH.Gender"))) {
+    feature <- as.integer(unlist(Householddata[col]))
+    norm_Householddata[col] <- (feature - min(feature)) / (max(feature) - min(feature))
+  }
+}
+
+head(norm_Householddata)
+```
+
+
+### Data VISUALIZATION:
+```{r}
+## Analyse and illustrate the relationship between Income vs Taxes?
+ggplot(data = norm_Householddata, mapping = aes(x = Income, y = Taxes)) + geom_point(color = "#00abff") + geom_smooth(method='lm') + labs(title="Relationship between Income vs Taxes") + ylab("Taxes") + xlab("Income")
+```
+
+```{r}
+## Analyse and illustrate the relationship between Income vs Taxes
+ggplot(data = norm_Householddata, mapping = aes(x = Income, y = Total_Expenditure)) + geom_smooth(method='lm') + geom_point(color = "#ff00ab") + labs(title="Relationship between Income vs Total Expenditure") + ylab("Total Expenditure") + xlab("Income")
+```
+
+```{r}
+### Is there any relationship between Taxes and Total expenditure? Explain the findings.
+ggplot(data = norm_Householddata, mapping = aes(x = Taxes, y = Total_Expenditure)) + geom_point(alpha = .7, color="green") + geom_smooth(method='lm') + labs(title="Relationship between Taxes and Total expenditure") + ylab("Total Expenditure") + xlab("Taxes")
+```
+
+> A) Analysing relationship between Income vs Taxes, Income vs Total Expenditure and Taxes vs Total Expenditure.
+    1) There is a strong Positive Correlation between variables Income and taxes as taxes goes higher with income<br>
+    2) There is a Positive Correlation between variables Income and total expenditure as people get more income, they tend to spend more but some outliers are there.<br>
+    3) There is a Correlation between variables Taxes and Total expenditure as people paying more taxes means they have good income but some outliers are there.<br><br>
+
+
+```{r}
+## Draw and explain the relationship between Ownhouse and Income
+ggplot(data = norm_Householddata, mapping = aes(x = Ownhouse, y = Income, color=Ownhouse)) + geom_col() + labs(title="Relationship between House Owner and Income") + xlab("House Owner") + ylab("Income")
+```
+
+> This House owning and Income variables relationship explain that people who have own house have higher income compared to people who does not own house.
+
+```{r}
+### Explain the relationship between Ownhouse and Education. Level and Gender
+ggplot(data=Householddata, aes(x=Ownhouse, y=log(Income), shape=HH.Gender, color=HH.Gender))  + geom_line() + scale_x_discrete("OwnHouse") + scale_y_continuous("Income") + facet_grid(.~Education.Level, labeller=as_labeller(c(`P` = "Primary", `S` = "Secondary", `I` = "Intermediate", `B` = "Bachelors", `M` = "Master")))
+```
+
+> This House owning, Education Qualification and Gender variables relationship explains that people who owns a house have higher income in all educational Level. The overall income of male is comparetively higher in all educational level who own a house whereas female have some higher salaries in non-own house category in educational level intermediate, Primary etc. The bachelors, Intermediate and Master Educational qualified earn more than remaining categories.
+
+```{r}
+### Draw and explain the frequency Ownhouse attribute
+Ownhouse.freq = table(Householddata$Ownhouse)
+lbls = c("No", "Yes")
+pct <- round(Ownhouse.freq/ sum(Ownhouse.freq) * 100)
+lbls <- paste(lbls, pct) # add percents to labels
+lbls <- paste(lbls,"%", sep="") # ad % to labels
+
+pie(Ownhouse.freq, lbls, main = "Frequency of House owner in dataset")
+```
+
+> This frequency barchart explains dataset have more records of people who owns a house compare to non house-owner. This dataset looks bias when when talks about collection of dataset. This also lead to the point that people who owns house higher in number compare to non house-owner.
+    
+```{r}
+Householddata = mutate(Householddata, Age.f=factor(if_else(HH.Age < 25, "Less Than 25", (if_else(HH.Age > 50, "Older than 50", "between 25 to 50")))))
+```
+
+```{r}
+unique(Householddata$Age.f)
+```
+
+```{r}
+### Age vs Expenditure Bar Plot
+ggplot(Householddata, aes(x=Age.f, y=log(Total_Expenditure))) + geom_col(fill = "#0073C2AA") + labs(title = "Age vs Total Expenditure") + xlab("Age Category") + ylab("Total Expenditure")
+```
+```{r}
+### Age vs Income Bar Plot
+ggplot(Householddata, aes(x=Age.f, y=log(Income))) + geom_col(fill = "#AA73C2")  + labs(title = "Age vs Income") + xlab("Age Category") + ylab("Income")
+```
+
+
+> Plots shows age group between 25 to 50 have higher income and expenditure compared to other age groups. Age Category Less Than 25 are on the lowest Income and expenditure group. There is positive co-relation between income and expenditure among all Age Groups.
