@@ -1,0 +1,275 @@
+---
+title: "Weather Data Analysis"
+author: "Ashish"
+date: "11/10/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# load package
+library(ggplot2)
+library(tidyverse)
+library(ggpubr)
+library(reshape2)
+library(MASS)
+```
+
+```{r}
+#dir=getwd()
+#dir
+#setwd(dir)
+```
+
+
+```{r}
+# read salary data and saved it in dat
+dat <- read.csv("weatherAUS.csv", header=TRUE, sep = ",")
+head(dat)
+```
+```{r}
+names(dat)
+```
+
+```{r}
+str(dat)
+```
+
+```{r}
+any(is.na (dat))
+```
+
+
+```{r}
+sapply(dat, function(x) sum(is.na(x)))
+```
+```{r}
+# delect Evaporation and RISK_MM columns
+df = subset(dat, select = -c(Evaporation,RISK_MM))
+names(df)
+```
+```{r}
+summary(dat)
+```
+
+```{r}
+min_temp <- dat$MinTemp
+summary(min_temp)
+```
+```{r}
+sd(min_temp, na.rm = TRUE)
+```
+
+```{r}
+summary(min_temp)
+
+min_temp <- na.omit(min_temp)
+summary(min_temp)
+```
+```{r}
+dat1 <- na.omit(dat)
+
+ggplot(data=dat1, aes(x=MinTemp)) + 
+  geom_histogram(binwidth=0.2, color="black") +
+  xlab("MinTemp") + ylab("Frequency") +
+  theme(legend.position="none")+
+  ggtitle("Histogram of MinTemp")+
+  geom_vline(data=dat1, aes(xintercept = mean(MinTemp)), linetype="dashed",color="blue")
+
+```
+```{r}
+ggplot(data=dat1, aes(x=MinTemp)) +
+  geom_histogram(binwidth=0.2, color="black",
+  aes(fill=Location, y=..density..)) +
+  xlab("MinTemp") + ylab("Frequency") +
+  theme(legend.position="none")+
+  ggtitle("Histogram of MinTemp by Location")+
+  geom_vline(data=dat1, aes(xintercept = mean(MinTemp)),
+  linetype="dashed",color="grey")
+```
+```{r}
+ggplot(data = dat1, mapping = aes(x = "minTemp", y = MinTemp)) +
+geom_boxplot()
+```
+```{r}
+ggplot(data = dat1, mapping = aes(x = Location, y = MinTemp, fill=Location)) +
+  geom_boxplot() +
+  coord_flip()
+```
+```{r}
+ggplot(data = dat1, aes(x=MinTemp)) +
+  geom_density(color="darkblue", fill="#FF6666") +
+  geom_vline(aes(xintercept=mean(MinTemp)), color="blue", linetype="dashed", size=1)
+```
+```{r}
+ggplot(data = dat1, aes(x = MinTemp)) +
+  geom_density(color="darkblue", fill="#FF6666") +theme_bw() +
+  facet_grid(. ~ Location) + coord_flip()
+```
+## Print column - max temp
+
+```{r}
+#sapply(dat, function(x) summary(dat))
+```
+
+```{r}
+max_temp <- dat$MaxTemp
+summary(max_temp)
+```
+```{r}
+sd(max_temp, na.rm = TRUE)
+
+```
+```{r}
+summary(max_temp)
+```
+```{r}
+max_temp <- na.omit(max_temp)
+summary(max_temp)
+```
+```{r}
+dat1 <- na.omit(dat)
+ggplot(data=dat1, aes(x=MaxTemp)) +
+  geom_histogram(binwidth=0.2, color="black") +
+  xlab("MaxTemp") + ylab("Frequency") +
+  theme(legend.position="none")+
+  ggtitle("Histogram of Max_temp")+
+  geom_vline(data=dat1, aes(xintercept = mean(MaxTemp)), linetype="dashed", color="grey")
+
+```
+
+## Histogram by location - max temp
+```{r}
+ggplot(data=dat1, aes(x=MaxTemp))+
+geom_histogram(binwidth=0.2, color="black",
+aes(fill=Location, y=..density..)) +
+xlab("MaxTemp") + ylab("Frequency") +
+theme(legend.position="none")+
+ggtitle("Histogram of MaxTemp by Location")+
+geom_vline(data=dat1, aes(xintercept = mean(MaxTemp)),
+linetype="dashed",color="grey")
+```
+##Box plot - max temp
+
+```{r}
+ggplot(data = dat1, mapping = aes(x = "MaxTemp", y = MaxTemp)) +
+geom_boxplot()
+```
+
+```{r}
+ggplot(data = dat1, mapping = aes(x = Location, y = MaxTemp, fill=Location)) +
+  geom_boxplot() +
+  coord_flip()
+```
+```{r}
+p1<-ggplot(data = dat1, mapping = aes(x = "MinTemp", y = MinTemp)) +
+  geom_boxplot()
+
+p2 <- ggplot(data = dat1, mapping = aes(x = "MaxTemp", y = MaxTemp)) +
+  geom_boxplot()
+
+ggarrange(p1, p2, ncol = 2, nrow = 1) #labels = c("MinTemp", "MaxTemp")
+```
+
+```{r}
+ggplot(data = dat1, aes(x=MaxTemp ,color=MaxTemp)) +
+geom_density(color="darkblue", fill="lightblue") +
+geom_vline(aes(xintercept=mean(MaxTemp)),
+color="blue", linetype="dashed", size=1)
+```
+```{r}
+pd1 <-ggplot(data = dat1, aes(x=MaxTemp ,color=MaxTemp)) +
+  geom_density(color="darkblue", fill="lightblue") +
+  geom_vline(aes(xintercept=mean(MaxTemp)), color="black", linetype="dashed", size=1)
+
+pd2 <-ggplot(data = dat1, aes(x=MinTemp ,color=MinTemp)) +
+  geom_density(color="darkblue", fill="#FF6666") +
+  geom_vline(aes(xintercept=mean(MinTemp)), color="black", linetype="dashed", size=1)
+
+ggarrange(pd1, pd2, ncol = 2, nrow = 1) #labels = c("MinTemp", "MaxTemp")
+```
+##2 Basic Analysis of Wind Direction
+## Frequency
+
+```{r}
+#2 Basic Analysis of Wind Direction Frequency
+table(dat1$WindDir3pm)
+##
+## E ENE ESE N NE NNE NNW NW S SE SSE SSW SW W WNW WSW
+## 3753 3946 3703 3626 3390 2440 2766 2727 4109 4153 3332 3485 4012 3922 3200 3856
+# Frequency percentage
+prop.table(table(dat1$WindDir3pm))
+```
+
+## Bar charts
+```{r}
+#ggplot barplot
+x <- table(dat1$WindDir3pm)
+x <- as.data.frame(x)
+
+colnames(x) <- c("Direction", "Count")
+
+ggplot(data=x,aes(x=Direction, y=Count, color=Direction)) +
+  geom_bar(stat="identity", fill="white") + coord_flip() +
+  ggtitle('Wind Dir 3pm from 2008-2017')
+```
+Bar charts: Frequency percentage
+```{r}
+# Frequency percentage
+xx<-prop.table(table(dat1$WindDir3pm))
+xx <- as.data.frame(xx)
+
+colnames(xx) <- c("Direction", "Freq")
+
+ggplot(data=xx,aes(x=Direction, y=Freq, color=Direction)) +
+  geom_bar(stat="identity", fill="white") +
+  ggtitle('Wind Dir 3pm 2008-2017')
+```
+
+## BIVARIATE ANALYSIS
+
+```{r}
+chi_s = table(dat1$WindGustDir, dat1$RainTomorrow) 
+chisq.test(chi_s) 
+```
+
+
+
+```{r}
+# Frequency percentage
+Freqs <- table(dat1$WindGustDir, dat1$RainTomorrow)
+myFreqs <- dat1 %>% 
+  group_by(WindGustDir, RainTomorrow) %>% 
+  summarise(n = n()) %>%
+  mutate(RainTomorrowPercent = n / sum(n)) %>%
+  filter(RainTomorrow == "Yes") 
+
+
+ggplot(data=myFreqs,aes(x=WindGustDir, y=RainTomorrowPercent, color="red")) +
+  geom_bar(stat="identity", fill="blue") +
+  ggtitle('Rain Prediction Percentage by Wind Direction')
+
+```
+
+
+```{r}
+# Frequency percentage
+Freqs <- table(dat1$Location, dat1$RainTomorrow)
+myFreqs <- dat1 %>% 
+  group_by(Location, RainTomorrow) %>% 
+  summarise(n = n()) %>%
+  mutate(RainTomorrowPercent = n / sum(n)) %>%
+  filter(RainTomorrow == "Yes")
+
+
+ggplot(data=myFreqs,aes(x=reorder(Location, RainTomorrowPercent), y=RainTomorrowPercent)) +
+  geom_bar(stat="identity", fill="blue") + 
+  coord_flip() +
+  ggtitle('Rain Prediction Percentage by Location')
+
+```
