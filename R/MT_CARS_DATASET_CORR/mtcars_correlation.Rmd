@@ -1,0 +1,156 @@
+---
+title: "MT Cars Analysis"
+author: "Ashish"
+date: "14/10/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Prerequisites: install packages
+
+```{r}
+# load package
+library(ggpubr)
+library(PerformanceAnalytics)
+library(corrplot)
+library(tidyr)
+library(tidyverse)
+library(ggplot2)
+library(datasets)
+library(dplyr)
+
+```
+
+```{r}
+#dir=getwd()
+#dir
+#setwd(dir)
+```
+
+##R functions for Correlation Correlation coefficient can be computed
+```{r}
+#using the functions cor() or cor.test().
+#cor(x, y, method = c("pearson", "kendall", "spearman"))
+#cor.test(x, y, method=c("pearson", "kendall", "spearman"))
+```
+
+
+## Import data into R
+```{r}
+# read salary data and saved it in dat
+dat <- mtcars
+head(dat, 10)
+```
+
+## Inspect the data: check data format and missing values
+
+```{r}
+str(dat)
+```
+
+#CHECK DIMENSION OF DATASET
+```{r}
+dim(dat)
+```
+
+
+## CHECK MISSING VALUE
+```{r}
+any(is.na(dat))
+```
+
+## Summary statistics
+```{r}
+summary(dat)
+```
+
+## Identify which variables do you want to check the Correlation between them
+#### correlation between mpg and wt variables
+
+
+### Visualise the variables using scatter plots, ggpubr R package
+```{r}
+ggscatter(dat, x = "mpg", y = "wt", add = "reg.line", conf.int = TRUE, xlab = "Miles/gallon", ylab = "Weight")
+#ggplot(dat, aes(x=mpg , y=wt)) + geom_point(color="red") + geom_smooth(method = lm)
+```
+
+## Pearson correlation, Spearman correlation and Kendall correlation
+```{r}
+ggscatter(dat, x="mpg", y="wt", add="reg.line", conf.int=TRUE, cor.coef=TRUE, cor.method="pearson", xlab="Miles/gallon", ylab="Weight")
+```
+#### From the plot, we can see that based on the Covariation: the relationship between mpg and wt is linear.
+
+## Normality test - Are mpg and wt follow a normal distribution?
+
+
+```{r}
+# The Prob < W value listed in the output is the p-value. If the chosen alpha level is 0.05 and the p-value is less than 0.05, then the null hypothesis that the data are normally distributed is rejected. If the p-value is greater than 0.05, then the null hypothesis is not rejected.
+
+# Shapiro test for mpg
+shapiro.test(dat$mpg)
+
+# Shapiro test for wt
+shapiro.test(dat$wt)
+```
+##### From the results, we can see that p-values are greater than the significance level 0.05. This means H1 will be rejected. Hence, we can assume mpg and wt are normally distributed.
+
+
+## Pearson correlation
+```{r}
+#DEFAULT HYPOTHESIS IS RELATION DOESN'T EXIST. p-value > 0.05 correlation doesn't exists (h1 hypothsis), p-value < 0.05 correlation exists
+res <- cor.test(dat$wt, dat$mpg, method = "pearson")
+res
+```
+## Spearman rank correlation coefficient
+```{r}
+
+res2 <- cor.test(dat$wt, dat$mpg, method = "spearman")
+res2
+```
+## Kendall rank correlation test
+```{r}
+res3 <- cor.test(dat$wt, dat$mpg, method="kendall")
+res3
+```
+## correlation between the possible pairs of variables
+#### correlation between the possible pairs of variables
+
+```{r}
+res4 <- round(cor(dat), 2)
+res4
+```
+## Visualisation of the correlation matrix.
+#### We can use chart.Correlation to visualise the correlation matrix
+
+```{r}
+chart.Correlation(dat, histogram=TRUE, pch="19")
+```
+## Visualisation of the correlation matrix - Circle, Pie, Number
+```{r}
+#We can use corrplot function. corrplot is a graph of correlation matrix. In this plot, correlation coefficients is colored according to the value.
+
+M <- cor(dat)
+corrplot(M, method = "circle")
+corrplot(M, method = "circle", type = "upper")
+corrplot(M, method="pie")
+corrplot(M, method="number")
+```
+Correlation Applications
+• Prediction: If there is a relationship between two variables, we can make predictions about one from another.
+• Validity: correlation validity between a new measure and an established measure.
+• Reliability: measures consistent or observers consistent.
+• Theory verification: Predictive validity
+
+```{r}
+
+```
+
+
+
+
+
+

@@ -1,0 +1,35 @@
+---
+title: "Diagnostic Analytic"
+author: "Ashish"
+date: "13/10/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Prerequisites
+
+```{r}
+# load package
+library(ggplot2)
+library(tidyverse)
+#library(ggpubr)
+#library(reshape2)
+#library(MASS)
+```
+
+```{r}
+#dir=getwd()
+#dir
+#setwd(dir)
+```
+
+## Read Data
+```{r}
+# read salary data and saved it in dat
+dat <- read.csv("weatherAUS.csv", header=TRUE, sep = ",")
+head(dat)
+```

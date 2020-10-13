@@ -1,0 +1,172 @@
+---
+title: "Energy Data Analysis"
+author: "Ashish"
+date: "13/10/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Prerequisites
+
+```{r}
+# load package
+library(ggplot2)
+library(tidyverse)
+#library(ggpubr)
+#library(reshape2)
+#library(MASS)
+```
+
+```{r}
+#dir=getwd()
+#dir
+#setwd(dir)
+```
+
+## Read Data
+```{r}
+# read salary data and saved it in dat
+dat <- read.csv("eng-data.csv", header=TRUE, sep = ",")
+head(dat)
+```
+
+## Check data types
+```{r}
+## Convert date to Date Data Type
+dat$Date <- as.Date(dat$Date)
+
+str(dat)
+```
+#CHECK DIMENSION OF DATASET
+```{r}
+dim(dat)
+```
+
+
+## CHECK MISSING VALUE
+```{r}
+any(is.na(dat))
+```
+```{r}
+sapply(dat, function(x) sum(is.na(x)))
+```
+
+# Remove missing values
+```{r}
+dat <- na.omit(dat)
+any(is.na(dat))
+```
+## Summary statistics
+```{r}
+summary(dat)
+
+```
+
+## Plot Date Vs (Consumption, Wind and Solar)
+
+```{r}
+library(ggpubr)
+p1 <- ggplot(dat, aes(x =Date, y =Consumption)) + geom_line(alpha=0.5, size=0.5, color="red") + labs(title="Date vs Consumption")
+p2 <- ggplot(dat, aes(x =Date, y =Wind)) + geom_line(alpha=0.5, size=0.3, color="blue") + labs(title="Date vs Wind")
+p3 <- ggplot(dat, aes(x =Date, y =Solar)) + geom_line(alpha=0.5, size=0.3) + labs(title="Date vs Solar")
+ggarrange(p1, p2, p3, ncol = 2, nrow = 2)
+
+```
+## Lets investigate a single year to have a closer look.
+## Add a new Date column into an existing data frame and split it
+```{r}
+# apply separate function to split x into Year", "Month", "Day
+x <- dat$Date
+dat$date_x <- as.Date(x)
+
+# apply separate function to split x into Year", "Month", "Day
+dat_2 <- separate(dat, date_x, c("Year", "Month", "Day"), sep = '-')
+head(dat_2)
+```
+## Change date items (year, month, date) seperated into numeric
+```{r}
+## Save data for group by Analysis
+dat_3 <- dat_2
+
+dat_2$Year  <- as.numeric(dat_2$Year)
+dat_2$Month <- as.numeric(dat_2$Month)
+dat_2$Day   <- as.numeric(dat_2$Day)
+head(dat_2)
+```
+
+## Plot Consumption vs a Year, say 2016
+```{r}
+# filter data for Year 2016
+dy <- filter(dat_2, dat_2$Year == 2016)
+ggplot(dy, aes(x=Date, y=Consumption)) + geom_line(alpha=0.5, size=0.5, color="red") + labs(title="Plot Consumption vs a Year, say 2016")
+```
+
+####From the above figure we can clearly see the consumption of electricity for Year 2016. There is a drastic decrease in the consumption of electricity at the end of the year (December) and during August.
+
+#Lets investigate December month in 2016
+##Plot Consumption for December month 2016
+
+```{r}
+# filter data for month December and Year 2016
+dy <- filter(dat_2, dat_2$Year == 2016 & Month == 12)
+ggplot(dy, aes(x=Date , y=Consumption)) + geom_line(alpha=0.5, size=0.5, color="red") + geom_point()+ labs(title="Plot Consumption for December month 2016")
+
+```
+####As shown in the above figure, electricity consumption is higher on weekdays and lowest at the weekends. We can also investigate the consumption for each day of the month.
+
+#Lets investigate consumption in the last week of December month in 2016
+##Plot Consumption for December month 2016 between date 23 and 26 (Christmas Time)
+
+```{r}
+# filter data for last week of December 2016
+dy <- filter(dat_2, dat_2$Year == 2016 & Month == 12 & Day >=23 & Day <=30)
+ggplot(dy, aes(x=Date , y=Consumption)) + geom_line(alpha=0.5, size=0.5, color="red") + geom_point()+ labs(title="Plot Consumption for December month 2016 between date 23 and 26 (Christmas Time)")
+```
+
+#### From the above fiure, we can see that electricity consumption was lowest on the day of Christmas, probably because people were busy partying. After Christmas, the consumption increased.
+
+## Grouping time series data We can group the data by different time periods and present them in box plot.
+```{r}
+### Plot data by months. Use the box plots to visualise the data vs month
+pa1 <- ggplot(data=dat_3, mapping=aes(x=Month, y=Consumption, fill=Month)) + geom_boxplot(alpha=0.9) + theme(legend.position="none") + labs(title="Date vs Consumption By Month")
+
+pa2 <- ggplot(data=dat_3, mapping=aes(x=Month, y=Solar, fill=Month)) + geom_boxplot(alpha=0.9)+ theme(legend.position="none") + labs(title="Date vs Solar By Month")
+
+pa3 <- ggplot(data=dat_3, mapping=aes(x=Month, y=Wind, fill=Month)) + geom_boxplot(alpha=0.9)+ theme(legend.position="none") + labs(title="Date vs Wind By Month")
+
+ggarrange(pa1, pa2, pa3 , ncol = 1, nrow = 3) #labels = c("Consumption", "Wind", "Solar")
+```
+#Lets investigate consumption of electricity by the day of the week
+
+##Convert Date into Weekday using weekdays Function
+
+```{r}
+# add new column and convert Date into weekdays
+dat_2$Weekday <- weekdays(dat_2$Date)
+
+### Plot data by months. Use the box plots to visualise the data vs month
+pa1 <- ggplot(data=dat_2, mapping=aes(x=Weekday, y=Consumption, fill=Weekday)) + geom_boxplot(alpha=0.9) + theme(legend.position="none") + labs(title="Date vs Consumption By Weekday")
+
+pa2 <- ggplot(data=dat_2, mapping=aes(x=Weekday, y=Solar, fill=Weekday)) + geom_boxplot(alpha=0.9)+ theme(legend.position="none") + labs(title="Date vs Solar By Weekday")
+
+pa3 <- ggplot(data=dat_2, mapping=aes(x=Weekday, y=Wind, fill=Weekday)) + geom_boxplot(alpha=0.9) + theme(legend.position="none") + labs(title="Date vs Wind By Weekday")
+
+ggarrange(pa1, pa2, pa3 , ncol = 1, nrow = 3) #labels = c("Consumption", "Wind", "Solar")
+```
+#### The above figure shows that electricity consumption is higher on weekdays than on weekends. Interestingly, there are more outliers on the weekdays.
+
+## Plot Consumption vs Wind.Solar of 2016
+```{r}
+# filter data for last week of December 2016
+dy2 <- filter(dat_2, Year == 2016)
+ggplot(dy2, aes(x=Date)) + geom_line(aes(y = Wind.Solar), color = "darkred", size=0.8) +
+geom_line(aes(y = Consumption), color="steelblue", linetype="twodash")
+
+
+```
+
+
